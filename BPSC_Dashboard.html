@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BPSC 2025 Study Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Global Styles */
+        body {
+            background-color: #FBF6E9;
+            color: #118B50;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #538392;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 10px;
+        }
+
+        button {
+            background-color: #5DB996;
+            color: #FBF6E9;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+
+        button:hover {
+            background-color: #118B50;
+        }
+
+        .task-card, .input-box, .quote-box {
+            background-color: #E3F0AF;
+            color: #118B50;
+            padding: 20px;
+            margin: 10px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        input[type="number"], input[type="text"], select, textarea {
+            background-color: #FBF6E9;
+            color: #118B50;
+            border: 1px solid #5DB996;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            width: 100%;
+        }
+
+        .progress-bar {
+            background-color: #5DB996;
+            border-radius: 10px;
+            height: 25px;
+            width: 0;
+        }
+
+        footer {
+            background-color: #E3F0AF;
+            color: #118B50;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .task-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .input-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .task-container > div, .input-container > div {
+            width: 48%;
+            margin-bottom: 20px;
+        }
+
+        .quote-box textarea {
+            height: 100px;
+        }
+
+        .note-box textarea {
+            height: 120px;
+        }
+
+        img {
+            width: 100%;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>BPSC 2025 Study Dashboard</h1>
+</header>
+
+<!-- Self Note Section -->
+<div class="note-box">
+    <h3>Add Your Self Note</h3>
+    <textarea id="selfNote" placeholder="Write your personal notes here..."></textarea>
+</div>
+
+<!-- Task Input Section -->
+<div class="input-container">
+    <div class="input-box">
+        <h3>Set Daily Goal</h3>
+        <input type="number" id="dailyGoal" placeholder="Daily Goal (Hours)">
+    </div>
+
+    <div class="input-box">
+        <h3>Set Weekly Goal</h3>
+        <input type="number" id="weeklyGoal" placeholder="Weekly Goal (Hours)">
+    </div>
+
+    <div class="input-box">
+        <h3>Task Name</h3>
+        <input type="text" id="taskName" placeholder="Task Name">
+    </div>
+
+    <div class="input-box">
+        <h3>Hours Spent</h3>
+        <input type="number" id="taskHours" placeholder="Hours Spent">
+    </div>
+
+    <div class="input-box">
+        <h3>Subject</h3>
+        <select id="taskCategory">
+            <option value="History">History</option>
+            <option value="Geography">Geography</option>
+            <option value="Current Affairs">Current Affairs</option>
+            <option value="Maths">Maths</option>
+            <option value="Other">Other</option>
+        </select>
+    </div>
+
+    <div class="input-box">
+        <input type="checkbox" id="isHighPriority">
+        <label for="isHighPriority">High Priority</label>
+        <button onclick="addTask()">Add Task</button>
+    </div>
+</div>
+
+<!-- Task Display Section -->
+<div class="task-container" id="tasksContainer"></div>
+
+<!-- Progress Bar -->
+<div class="input-box">
+    <h3>Total Hours</h3>
+    <div class="progress-bar" id="progressBar"></div>
+</div>
+
+<!-- Weekly Review Chart -->
+<canvas id="weeklyChart" width="400" height="200"></canvas>
+
+<!-- Motivational Quotes Section -->
+<div class="quote-box">
+    <h3>Your Daily Quote</h3>
+    <textarea id="customQuote" placeholder="Add your own quote"></textarea>
+    <button onclick="saveCustomQuote()">Save Quote</button>
+    <p id="quoteDisplay" style="color: black;">Anmesha, keep pushing forward, you're doing amazing!</p>
+</div>
+
+<!-- Footer -->
+<footer>
+    <p>Made with ❤️ to help you succeed in BPSC 2025, Anmesha!</p>
+    <img src="https://via.placeholder.com/600x200.png?text=Study+Hard" alt="Motivation Image">
+</footer>
+
+<script>
+// Variables
+let weeklyTasks = [];
+let historyHours = 0;
+let geographyHours = 0;
+let currentAffairsHours = 0;
+let mathsHours = 0;
+let otherHours = 0;
+let totalStudyHours = 0;
+
+// Load tasks from localStorage on page load
+window.onload = function () {
+    loadTasksFromLocalStorage();
+};
+
+// Task Input Elements
+const dailyGoalInput = document.getElementById('dailyGoal');
+const weeklyGoalInput = document.getElementById('weeklyGoal');
+const taskNameInput = document.getElementById('taskName');
+const taskHoursInput = document.getElementById('taskHours');
+const taskCategoryInput = document.getElementById('taskCategory');
+const isHighPriorityInput = document.getElementById('isHighPriority');
+
+// Save tasks to localStorage
+function saveTasksToLocalStorage() {
+    localStorage.setItem('tasks', JSON.stringify(weeklyTasks));
+}
+
+// Load tasks from localStorage
+function loadTasksFromLocalStorage() {
+    const storedTasks = localStorage.getItem('tasks');
+    if (storedTasks) {
+        weeklyTasks = JSON.parse(storedTasks);
+        renderTasks();
+    }
+}
+
+// Render tasks on the page
+function renderTasks() {
+    const tasksContainer = document.getElementById('tasksContainer');
+    tasksContainer.innerHTML = ''; // Clear existing tasks
+    weeklyTasks.forEach((task, index) => {
+        const taskDiv = document.createElement('div');
+        taskDiv.className = 'task-card';
+        taskDiv.innerHTML = `
+            <strong>${task.name}</strong> (Category: ${task.category})<br>
+            Hours: ${task.hours} | Priority: ${task.isHighPriority ? 'High' : 'Low'} 
+            <button onclick="deleteTask(${index})">Delete</button>
+        `;
+        tasksContainer.appendChild(taskDiv);
+    });
+    updateProgress();
+    updateChartData();
+}
+
+// Add task
+function addTask() {
+    const taskName = taskNameInput.value;
+    const taskHours = parseInt(taskHoursInput.value);
+    const taskCategory = taskCategoryInput.value;
+    const isHighPriority = isHighPriorityInput.checked;
+
+    if (taskName && !isNaN(taskHours)) {
+        const task = {
+            name: taskName,
+            hours: taskHours,
+            category: taskCategory,
+            isHighPriority: isHighPriority
+        };
+        weeklyTasks.push(task);
+        saveTasksToLocalStorage();
+        renderTasks();
+    } else {
+        alert("Please fill out task details correctly.");
+    }
+}
+
+// Delete task
+function deleteTask(index) {
+    weeklyTasks.splice(index, 1);
+    saveTasksToLocalStorage();
+    renderTasks();
+}
+
+// Update progress bar and total hours
+function updateProgress() {
+    totalStudyHours = weeklyTasks.reduce((total, task) => total + task.hours, 0);
+    const dailyGoal = parseInt(dailyGoalInput.value);
+    document.getElementById('totalHours').textContent = totalStudyHours;
+    document.getElementById('dailyGoalDisplay').textContent = dailyGoal;
+
+    const
